@@ -50,17 +50,23 @@ class Brain {
     // Ensure subsystems are wired on first call
     if (!this._initialized) await this.init();
     logger.info(`Brain.think called | source: ${source} | input: "${input}"`);
+    if (source === 'voice') {
+      const micSensor = require('../sensors/micSensor');
+      micSensor.onTranscript(input);
+    }
 
     const memorySnapshot = this.memory
       ? await this.memory.getSnapshot(userId)
       : 'Memory system not loaded.';
 
+    const contextStore = require('../sensors/contextStore');
     const fullContext = {
       ...context,
       source,
       userId,
       memorySnapshot,
       time: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+      sensors: contextStore.snapshot(),
     };
 
     // Check if this requires agentic execution
