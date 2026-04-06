@@ -1,4 +1,12 @@
 require('dotenv').config();
+// Situational awareness — each file self-initializes on require
+require('./sensors/locationSensor');
+require('./sensors/systemSensor');
+require('./sensors/clipboardSensor');
+require('./sensors/fileSensor');
+require('./sensors/screenSensor');
+require('./sensors/webcamSensor');
+require('./context/decisionLayer');
 const express = require('express');
 const helmet  = require('helmet');
 const cors    = require('cors');
