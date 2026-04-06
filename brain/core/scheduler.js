@@ -1,4 +1,5 @@
 const cron = require('node-cron');
+const outbound = require('../../shared/outbound');
 const logger = require('../../shared/logger');
 
 class Scheduler {
@@ -7,13 +8,13 @@ class Scheduler {
     this.calendarMonitorActive = false;
   }
 
-  schedule({ message, delay, action, tool, params }) {
+  schedule({ message, delay, action, tool, params, userId }) {
     const id = Date.now();
-    this.pending.push({ id, message, delay, tool, params });
+    this.pending.push({ id, message, delay, tool, params, userId });
 
     setTimeout(async () => {
       if (message) {
-        await this.notify(message);
+        await this.notify(message, userId);
       }
       if (tool) {
         try {
@@ -29,14 +30,12 @@ class Scheduler {
     logger.info(`Task scheduled: ${message || tool} (delay: ${delay || 0}ms)`);
   }
 
-  async notify(message) {
+  async notify(message, userId) {
     logger.info(`Notification: ${message}`);
-    // Push notification to phone app (when connected)
-    try {
-      const push = require('../../connectors/phone/push');
-      await push.send(message);
-    } catch {
-      // Phone push not available yet
+    if (userId) {
+      await outbound.push(userId, message);
+    } else {
+      await outbound.broadcast(message);
     }
   }
 

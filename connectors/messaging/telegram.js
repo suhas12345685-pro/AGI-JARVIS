@@ -1,6 +1,7 @@
 require('dotenv').config({ path: require('path').resolve(__dirname, '../../.env') });
 const { Telegraf } = require('telegraf');
 const brain = require('../../brain/core/brain');
+const outbound = require('../../shared/outbound');
 const logger = require('../../shared/logger');
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
@@ -18,11 +19,23 @@ brain.init().then(() => {
   logger.warn(`Brain init warning: ${err.message}`);
 });
 
+function registerOutbound(ctx) {
+  const userId = ctx.from.id.toString();
+  const chatId = ctx.chat.id;
+  if (!outbound.hasChannel(userId)) {
+    outbound.register(userId, 'telegram', async (message) => {
+      await bot.telegram.sendMessage(chatId, message);
+    });
+  }
+}
+
 bot.start((ctx) => {
+  registerOutbound(ctx);
   ctx.reply("JARVIS online, sir. How may I assist you?");
 });
 
 bot.on('text', async (ctx) => {
+  registerOutbound(ctx);
   try {
     const result = await brain.think({
       input: ctx.message.text,

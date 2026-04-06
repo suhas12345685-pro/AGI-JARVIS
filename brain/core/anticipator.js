@@ -2,6 +2,7 @@ const { reason } = require('../llm/router');
 const { buildSystemPrompt } = require('./personality');
 const scheduler = require('./scheduler');
 const cache = require('../../shared/cache');
+const outbound = require('../../shared/outbound');
 const logger = require('../../shared/logger');
 
 class Anticipator {
@@ -38,11 +39,11 @@ class Anticipator {
       for (const p of parsed) {
         if (p.timing === 'now' && p.confidence >= 0.85) {
           logger.info(`Anticipator acting now: ${p.need} (confidence: ${p.confidence})`);
-          await this.actNow(p);
+          await this.actNow(p, context);
 
         } else if (p.timing === 'prepare' && p.confidence >= 0.70) {
           logger.info(`Anticipator preparing: ${p.need} (confidence: ${p.confidence})`);
-          await this.prepare(p);
+          await this.prepare(p, context);
 
         } else if (p.timing === 'wait') {
           logger.info(`Anticipator scheduling alert: ${p.need}`);
@@ -54,21 +55,30 @@ class Anticipator {
     }
   }
 
-  async actNow(prediction) {
+  async actNow(prediction, context) {
     const tools = require('../tools/registry');
     try {
       const result = await tools.execute(prediction.tool, prediction.params);
       logger.info(`Proactive action complete: ${prediction.need} → ${result}`);
+      // Push the result to the user — JARVIS acts, then reports
+      const userId = context.userId || 'user';
+      if (prediction.message) {
+        await outbound.push(userId, prediction.message);
+      } else if (result && typeof result === 'string') {
+        await outbound.push(userId, `Sir, I went ahead and looked into something: ${result.slice(0, 500)}`);
+      }
     } catch (err) {
       logger.warn(`Proactive action failed: ${err.message}`);
     }
   }
 
-  async prepare(prediction) {
+  async prepare(prediction, context) {
     try {
       const tools = require('../tools/registry');
       const result = await tools.execute(prediction.tool, prediction.params);
-      cache.set(prediction.need, result, 300);
+      // Cache with the need as key so brain.think() can retrieve it
+      cache.set(`anticipation:${prediction.need}`, result, 600);
+      logger.info(`Anticipator cached result for: ${prediction.need}`);
     } catch (err) {
       logger.warn(`Proactive prepare failed: ${err.message}`);
     }

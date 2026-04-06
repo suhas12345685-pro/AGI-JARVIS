@@ -1,6 +1,7 @@
 const { reason } = require('../llm/router');
 const { buildSystemPrompt } = require('./personality');
 const { wrapWithCoT } = require('../llm/promptEngine');
+const cache = require('../../shared/cache');
 const logger = require('../../shared/logger');
 
 class Brain {
@@ -33,8 +34,11 @@ class Brain {
       this.executor = require('../agents/executor');
       this.reflector = require('../agents/reflector');
 
+      // Start autonomous awareness loop — JARVIS acts on its own
+      this.startAutonomousLoop();
+
       this._initialized = true;
-      logger.info('Brain fully initialised — all subsystems wired');
+      logger.info('Brain fully initialised — all subsystems wired, autonomous loop active');
     } catch (err) {
       logger.error(`Brain init error: ${err.message}`);
       // Brain still works in degraded mode (simple LLM path, no memory/grounding)
@@ -71,6 +75,13 @@ class Brain {
   }
 
   async simpleThink({ input, source, userId, context }) {
+    // Check if anticipator already prepared a relevant result
+    const cached = cache.get(`anticipation:${input}`);
+    if (cached) {
+      logger.info(`Anticipator cache hit for: "${input}"`);
+      context.anticipatedResult = cached;
+    }
+
     const systemPrompt = buildSystemPrompt(context);
     const userMessage = wrapWithCoT(input, context);
 
@@ -120,6 +131,62 @@ class Brain {
       /figure\s+out\s+how\s+to/i,
     ];
     return complexPatterns.some(p => p.test(input));
+  }
+
+  startAutonomousLoop() {
+    const cron = require('node-cron');
+    const outbound = require('../../shared/outbound');
+    const scheduler = require('./scheduler');
+
+    // Every 10 minutes: JARVIS reviews context and decides if it should act
+    cron.schedule('*/10 * * * *', async () => {
+      try {
+        if (!this.memory) return;
+
+        // Get all known users from outbound channels
+        const channels = outbound.channels;
+        for (const [userId] of channels) {
+          const snapshot = await this.memory.getSnapshot(userId);
+          if (!snapshot) continue;
+
+          const now = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+          const pendingTasks = scheduler.pending
+            .filter(p => p.userId === userId)
+            .map(p => p.message || p.tool)
+            .join(', ');
+
+          const assessment = await reason(
+            'You are JARVIS\'s autonomous awareness module. You review context and decide whether to proactively reach out to the user. Be selective — only act when there is genuine value.',
+            `
+            Current time: ${now}
+            User memory: ${snapshot}
+            Pending scheduled tasks: ${pendingTasks || 'None'}
+
+            Should JARVIS proactively reach out to the user right now?
+            Consider: pending tasks, time of day, things the user mentioned wanting.
+            Return ONLY valid JSON (no markdown):
+            { "shouldAct": true/false, "reason": "...", "message": "What JARVIS should say to the user" }
+            If shouldAct is false, just return { "shouldAct": false }.
+            `
+          );
+
+          const jsonMatch = assessment.match(/\{[\s\S]*\}/);
+          if (!jsonMatch) continue;
+          const decision = JSON.parse(jsonMatch[0]);
+
+          if (decision.shouldAct && decision.message) {
+            logger.info(`Autonomous loop: reaching out to ${userId} — ${decision.reason}`);
+            await outbound.push(userId, decision.message);
+          }
+        }
+      } catch (err) {
+        logger.warn(`Autonomous loop error: ${err.message}`);
+      }
+    });
+
+    // Start calendar monitor as well
+    scheduler.startCalendarMonitor();
+    logger.info('Autonomous awareness loop started (every 10 minutes)');
   }
 }
 
