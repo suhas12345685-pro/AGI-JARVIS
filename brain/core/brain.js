@@ -11,9 +11,40 @@ class Brain {
     this.planner = null;
     this.executor = null;
     this.reflector = null;
+    this._initialized = false;
+  }
+
+  async init() {
+    if (this._initialized) return;
+    try {
+      // Wire memory (3-tier: Redis + SQLite + ChromaDB)
+      const memory = require('../../memory/manager');
+      await memory.init();
+      this.memory = memory;
+
+      // Wire grounder (zero-hallucination enforcement)
+      this.grounder = require('./grounder');
+
+      // Wire anticipator (proactive action system)
+      this.anticipator = require('./anticipator');
+
+      // Wire agentic pipeline (planner → executor → reflector)
+      this.planner = require('../agents/planner');
+      this.executor = require('../agents/executor');
+      this.reflector = require('../agents/reflector');
+
+      this._initialized = true;
+      logger.info('Brain fully initialised — all subsystems wired');
+    } catch (err) {
+      logger.error(`Brain init error: ${err.message}`);
+      // Brain still works in degraded mode (simple LLM path, no memory/grounding)
+      this._initialized = true;
+    }
   }
 
   async think({ input, source = 'direct', userId = 'user', context = {} }) {
+    // Ensure subsystems are wired on first call
+    if (!this._initialized) await this.init();
     logger.info(`Brain.think called | source: ${source} | input: "${input}"`);
 
     const memorySnapshot = this.memory

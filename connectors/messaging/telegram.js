@@ -11,6 +11,13 @@ if (!token) {
 
 const bot = new Telegraf(token);
 
+// Ensure brain subsystems are wired before handling messages
+brain.init().then(() => {
+  logger.info('Brain initialised for Telegram connector');
+}).catch(err => {
+  logger.warn(`Brain init warning: ${err.message}`);
+});
+
 bot.start((ctx) => {
   ctx.reply("JARVIS online, sir. How may I assist you?");
 });

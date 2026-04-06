@@ -58,6 +58,9 @@ app.post('/otp/receive', (req, res) => {
 const PORT = process.env.JARVIS_PORT || 3000;
 const HOST = process.env.JARVIS_HOST || '0.0.0.0';
 
-app.listen(PORT, HOST, () => {
-  logger.info(`JARVIS brain online → http://${HOST}:${PORT}`);
-});
+(async () => {
+  await brain.init();
+  app.listen(PORT, HOST, () => {
+    logger.info(`JARVIS brain online → http://${HOST}:${PORT}`);
+  });
+})();
