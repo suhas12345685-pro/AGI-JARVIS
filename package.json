@@ -25,6 +25,7 @@
   "license": "ISC",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.82.0",
+    "@chroma-core/default-embed": "^0.1.9",
     "@google/generative-ai": "^0.24.1",
     "@whiskeysockets/baileys": "^7.0.0-rc.9",
     "ask-sdk-core": "^2.14.0",

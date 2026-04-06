@@ -3,7 +3,13 @@ const logger = require('../../shared/logger');
 
 class VectorMemory {
   constructor() {
-    this.client = new ChromaClient({ path: process.env.CHROMA_URL || 'http://localhost:8000' });
+    const chromaUrl = process.env.CHROMA_URL || 'http://localhost:8000';
+    const url = new URL(chromaUrl);
+    this.client = new ChromaClient({
+      host: url.hostname,
+      port: parseInt(url.port, 10) || 8000,
+      ssl: url.protocol === 'https:',
+    });
     this.collectionName = 'jarvis_memory';
     this.collection = null;
     this.ready = false;
