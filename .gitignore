@@ -1,0 +1,16 @@
+node_modules/
+venv/
+.env
+*.db
+logs/
+memory/vector/chroma_store/
+connectors/messaging/wa_auth/
+/tmp/
+*.pyc
+__pycache__/
+.DS_Store
+*.log
+dist/
+build/
+.expo/
+phone/node_modules/

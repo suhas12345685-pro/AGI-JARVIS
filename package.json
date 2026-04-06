@@ -1,0 +1,50 @@
+{
+  "name": "agi-jarvis",
+  "version": "1.0.0",
+  "description": "J.A.R.V.I.S. — Just A Rather Very Intelligent System",
+  "main": "brain/index.js",
+  "scripts": {
+    "start": "node brain/index.js",
+    "dev": "node brain/index.js",
+    "voice": "python3 voice/interceptor.py",
+    "laptop": "python3 connectors/laptop/server.py",
+    "telegram": "node connectors/messaging/telegram.js",
+    "whatsapp": "node connectors/messaging/whatsapp.js",
+    "install-skills": "node -e \"require('./brain/skills/installer').installAll()\"",
+    "pm2:start": "pm2 start ecosystem.config.js",
+    "pm2:stop": "pm2 stop all",
+    "pm2:logs": "pm2 logs",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://local_proxy@127.0.0.1:38223/git/suhas12345685-pro/AGI-JARVIS"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.82.0",
+    "@google/generative-ai": "^0.24.1",
+    "@whiskeysockets/baileys": "^7.0.0-rc.9",
+    "ask-sdk-core": "^2.14.0",
+    "axios": "^1.14.0",
+    "better-sqlite3": "^12.8.0",
+    "cheerio": "^1.2.0",
+    "chromadb": "^3.4.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.1",
+    "express": "^5.2.1",
+    "helmet": "^8.1.0",
+    "node-cron": "^4.2.1",
+    "ollama": "^0.6.3",
+    "openai": "^6.33.0",
+    "playwright": "^1.59.1",
+    "razorpay": "^2.9.6",
+    "redis": "^5.11.0",
+    "telegraf": "^4.16.3",
+    "uuid": "^13.0.0",
+    "winston": "^3.19.0",
+    "ws": "^8.20.0"
+  }
+}
